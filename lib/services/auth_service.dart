@@ -9,6 +9,7 @@ class AuthService {
   static const String _keyMid = 'mid';
   static const String _keyFace = 'face'; // 用户头像
   static const String _keyUname = 'uname'; // 用户昵称
+  static const String _keyIsVip = 'is_vip'; // 是否是大会员
 
   static SharedPreferences? _prefs;
 
@@ -21,6 +22,7 @@ class AuthService {
   static int? _mid;
   static String? _face;
   static String? _uname;
+  static bool _isVip = false;
 
   /// 初始化
   static Future<void> init() async {
@@ -32,6 +34,7 @@ class AuthService {
     _mid = _prefs?.getInt(_keyMid);
     _face = _prefs?.getString(_keyFace);
     _uname = _prefs?.getString(_keyUname);
+    _isVip = _prefs?.getBool(_keyIsVip) ?? false;
   }
 
   /// 是否已登录
@@ -54,6 +57,9 @@ class AuthService {
 
   /// 获取用户昵称
   static String? get uname => _uname;
+
+  /// 是否是大会员
+  static bool get isVip => _isVip;
 
   /// 保存 TV 登录凭证
   static Future<void> saveLoginCredentials({
@@ -92,11 +98,17 @@ class AuthService {
   static Future<void> saveUserInfo({
     required String face,
     required String uname,
+    bool? isVip,
   }) async {
     _face = face;
     _uname = uname;
     await _prefs?.setString(_keyFace, face);
     await _prefs?.setString(_keyUname, uname);
+
+    if (isVip != null) {
+      _isVip = isVip;
+      await _prefs?.setBool(_keyIsVip, isVip);
+    }
   }
 
   /// 退出登录

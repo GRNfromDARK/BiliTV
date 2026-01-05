@@ -7,6 +7,7 @@ import 'tabs/plugins_settings.dart';
 import 'tabs/storage_settings.dart';
 import 'tabs/about_settings.dart';
 import '../../../widgets/time_display.dart';
+import '../../../widgets/vip_avatar_badge.dart';
 
 /// 设置分类枚举
 enum SettingsCategory {
@@ -249,18 +250,21 @@ class SettingsViewState extends State<SettingsView> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // 头像
-                  ClipOval(
-                    child:
-                        AuthService.face != null && AuthService.face!.isNotEmpty
-                        ? Image.network(
-                            AuthService.face!,
-                            width: 45,
-                            height: 45,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => _buildDefaultAvatar(),
-                          )
-                        : _buildDefaultAvatar(),
-                  ),
+                  if (AuthService.face != null && AuthService.face!.isNotEmpty)
+                    VipAvatarBadge(
+                      size: 45,
+                      child: ClipOval(
+                        child: Image.network(
+                          AuthService.face!,
+                          width: 45,
+                          height: 45,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => _buildDefaultAvatar(),
+                        ),
+                      ),
+                    )
+                  else
+                    _buildDefaultAvatar(),
                   const SizedBox(width: 15),
                   // 用户名和 UID
                   Column(
@@ -268,8 +272,10 @@ class SettingsViewState extends State<SettingsView> {
                     children: [
                       Text(
                         AuthService.uname ?? '已登录',
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: AuthService.isVip
+                              ? const Color(0xFFfb7299) // VIP 粉色
+                              : Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),

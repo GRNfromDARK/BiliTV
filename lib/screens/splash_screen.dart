@@ -53,6 +53,15 @@ class _SplashScreenState extends State<SplashScreen> {
       UpdateService.init(),
     ]);
 
+    // 4. 如果已登录，更新一下用户信息 (获取最新 VIP 状态)
+    // 不 await，让它在后台跑，或者如果很快完成也没关系
+    // 这里选择放在后面单独调一下，不阻塞核心服务初始化，但尽量在进入主页前完成
+    if (AuthService.isLoggedIn) {
+      BilibiliApi.fetchAndSaveUserInfo().catchError((e) {
+        debugPrint('Failed to update user info on splash: $e');
+      });
+    }
+
     // 检查是否禁用了启动动画
     if (!SettingsService.splashAnimationEnabled) {
       _videoController?.removeListener(_onVideoPositionChanged);

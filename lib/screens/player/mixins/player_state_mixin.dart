@@ -105,9 +105,17 @@ mixin PlayerStateMixin on State<PlayerScreen> {
 
   // 获取编解码器简称
   String get _codecLabel {
-    if (currentCodec.startsWith('av01')) return 'AV1';
-    if (currentCodec.startsWith('hev')) return 'H.265';
-    if (currentCodec.startsWith('avc')) return 'H.264';
+    if (currentCodec.startsWith('av01')) {
+      return 'AV1';
+    }
+    if (currentCodec.startsWith('hev') ||
+        currentCodec.startsWith('hvc') ||
+        currentCodec.startsWith('dvh')) {
+      return 'H.265';
+    }
+    if (currentCodec.startsWith('avc')) {
+      return 'H.264';
+    }
     return '';
   }
 

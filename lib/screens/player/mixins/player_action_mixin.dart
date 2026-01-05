@@ -171,12 +171,53 @@ mixin PlayerActionMixin on PlayerStateMixin {
       // 尝试每个编码器
       codecLoop:
       for (final tryCodec in uniqueCodecs) {
-        final playInfo = await BilibiliApi.getVideoPlayUrl(
+        // 1. 首次请求: 使用默认画质(80)或当前设定画质
+        // 这样可以获取到视频实际支持的 accept_quality 列表，而不是盲猜
+        var playInfo = await BilibiliApi.getVideoPlayUrl(
           bvid: widget.video.bvid,
           cid: cid!,
           qn: currentQuality,
           forceCodec: tryCodec,
         );
+
+        // 2. 智能升级 (仅针对 VIP)
+        // 如果是 VIP 且首次请求成功，检查是否有更高画质可用
+        if (AuthService.isVip &&
+            playInfo != null &&
+            playInfo['qualities'] != null) {
+          final qualities = playInfo['qualities'] as List;
+          if (qualities.isNotEmpty) {
+            // 获取该视频支持的最高画质
+            // qualities 是 List<Map<String, dynamic>>, 需提取 qn 并排序
+            final supportedQns = qualities.map((e) => e['qn'] as int).toList();
+            if (supportedQns.isNotEmpty) {
+              final maxQn = supportedQns.reduce(
+                (curr, next) => curr > next ? curr : next,
+              );
+              final currentQn = playInfo['currentQuality'] as int? ?? 0;
+
+              // 如果最高画质 > 当前画质 (且当前画质只是默认的80，或者我们想强制升级)
+              // 注意: 有时候 maxQn 可能高达 127/126，而 currentQn 只有 80
+              if (maxQn > currentQn) {
+                debugPrint(
+                  '🎬 [SmartQuality] VIP detected. Upgrading from $currentQn to $maxQn',
+                );
+
+                final upgradePlayInfo = await BilibiliApi.getVideoPlayUrl(
+                  bvid: widget.video.bvid,
+                  cid: cid!,
+                  qn: maxQn, // 精确请求最高画质
+                  forceCodec: tryCodec,
+                );
+
+                // 如果升级请求成功，使用新数据
+                if (upgradePlayInfo != null) {
+                  playInfo = upgradePlayInfo;
+                }
+              }
+            }
+          }
+        }
 
         if (playInfo == null) {
           lastError = '解析播放地址失败';

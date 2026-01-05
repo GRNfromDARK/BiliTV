@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../services/settings_service.dart';
 import '../core/focus/focus_navigation.dart';
+import 'vip_avatar_badge.dart';
 
 /// 侧边栏焦点项组件
 ///
@@ -66,28 +67,31 @@ class TvFocusableItem extends StatelessWidget {
   Widget _buildContent(bool focused) {
     // 如果有头像 URL，显示头像
     if (avatarUrl != null && avatarUrl!.isNotEmpty) {
-      return ClipOval(
-        child: CachedNetworkImage(
-          imageUrl: avatarUrl!,
-          cacheManager: BiliCacheManager.instance,
-          width: 36,
-          height: 36,
-          fit: BoxFit.cover,
-          memCacheWidth: 100,
-          memCacheHeight: 100,
-          maxWidthDiskCache: 100,
-          maxHeightDiskCache: 100,
-          placeholder: (_, _) => Container(
+      return VipAvatarBadge(
+        size: 36,
+        child: ClipOval(
+          child: CachedNetworkImage(
+            imageUrl: avatarUrl!,
+            cacheManager: BiliCacheManager.instance,
             width: 36,
             height: 36,
-            color: Colors.grey[700],
-            child: const Icon(Icons.person, size: 20, color: Colors.white54),
-          ),
-          errorWidget: (_, _, _) => Container(
-            width: 36,
-            height: 36,
-            color: Colors.grey[700],
-            child: const Icon(Icons.person, size: 20, color: Colors.white54),
+            fit: BoxFit.cover,
+            memCacheWidth: 100,
+            memCacheHeight: 100,
+            maxWidthDiskCache: 100,
+            maxHeightDiskCache: 100,
+            placeholder: (_, _) => Container(
+              width: 36,
+              height: 36,
+              color: Colors.grey[700],
+              child: const Icon(Icons.person, size: 20, color: Colors.white54),
+            ),
+            errorWidget: (_, _, _) => Container(
+              width: 36,
+              height: 36,
+              color: Colors.grey[700],
+              child: const Icon(Icons.person, size: 20, color: Colors.white54),
+            ),
           ),
         ),
       );

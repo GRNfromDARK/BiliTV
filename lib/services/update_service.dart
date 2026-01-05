@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../config/env.dart';
 
 /// 更新信息模型
 class UpdateInfo {
@@ -50,8 +51,8 @@ class UpdateService {
   static const String _apiKeyKey = 'update_api_key';
 
   // 固定配置 (开源版本留空，需要更新功能请自行配置服务器)
-  static const String defaultServerUrl = '';
-  static const String defaultApiKey = '';
+  static const String defaultServerUrl = Env.updateServerUrl;
+  static const String defaultApiKey = Env.updateApiKey;
 
   static SharedPreferences? _prefs;
 

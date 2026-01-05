@@ -23,8 +23,18 @@ class AuthApi {
           final face = data['face'] as String? ?? '';
           final uname = data['uname'] as String? ?? '';
 
+          // 解析 VIP 状态
+          // vipStatus: 0=无, 1=大会员
+          // vipType: 0=无, 1=月度, 2=年度及以上
+          final vipData = data['vip'];
+          final isVip = (vipData != null && (vipData['status'] == 1));
+
           if (face.isNotEmpty) {
-            await AuthService.saveUserInfo(face: face, uname: uname);
+            await AuthService.saveUserInfo(
+              face: face,
+              uname: uname,
+              isVip: isVip,
+            );
           }
         }
       }
