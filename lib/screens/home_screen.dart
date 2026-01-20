@@ -7,6 +7,7 @@ import 'home/history_tab.dart';
 import 'home/search_tab.dart';
 import 'home/login_tab.dart';
 import 'home/dynamic_tab.dart';
+import 'home/live_tab.dart';
 import '../widgets/tv_focusable_item.dart';
 import '../services/auth_service.dart';
 import '../services/settings_service.dart';
@@ -26,12 +27,13 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime? _lastBackPressed;
   DateTime? _backFromSearchHandled; // 防止搜索键盘返回键重复处理
 
-  // Tab 顺序: 搜索、首页、动态、历史、登录
+  // Tab 顺序: 搜索、首页、动态、历史、直播、登录
   final List<String> _tabIcons = [
     'assets/icons/search.svg',
     'assets/icons/home.svg',
     'assets/icons/dynamic.svg',
     'assets/icons/history.svg',
+    'assets/icons/live.svg', // 新增直播图标
     'assets/icons/user.svg',
   ];
 
@@ -47,6 +49,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<HistoryTabState> _historyTabKey =
       GlobalKey<HistoryTabState>();
   final GlobalKey<LoginTabState> _loginTabKey = GlobalKey<LoginTabState>();
+  // 直播 Tab
+  final GlobalKey<LiveTabState> _liveTabKey = GlobalKey<LiveTabState>();
 
   @override
   void initState() {
@@ -101,6 +105,12 @@ class _HomeScreenState extends State<HomeScreen> {
         _historyTabKey.currentState?.refresh();
       }
     });
+
+    // 预加载直播
+    Future.delayed(const Duration(milliseconds: 2500), () {
+      if (!mounted) return;
+      _liveTabKey.currentState?.refresh();
+    });
   }
 
   @override
@@ -120,6 +130,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _dynamicTabKey.currentState?.refresh();
       } else if (index == 3) {
         _historyTabKey.currentState?.refresh();
+      } else if (index == 4) {
+        _liveTabKey.currentState?.refresh();
       }
       return;
     }
@@ -127,11 +139,13 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _selectedTabIndex = index);
     _sideBarFocusNodes[index].requestFocus();
 
-    // 动态和历史记录标签: 切换时也刷新
+    // 动态和历史记录、直播标签: 切换时也刷新
     if (index == 2) {
       _dynamicTabKey.currentState?.refresh();
     } else if (index == 3) {
       _historyTabKey.currentState?.refresh();
+    } else if (index == 4) {
+      _liveTabKey.currentState?.refresh();
     }
   }
 
@@ -167,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         if (_selectedTabIndex != 1) {
-          // 其他标签（历史、登录）按返回键都回到主页
+          // 其他标签（历史、直播、登录）按返回键都回到主页
           setState(() => _selectedTabIndex = 1);
           _sideBarFocusNodes[1].requestFocus();
           return;
@@ -206,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: List.generate(_tabIcons.length, (index) {
-                    final isUserTab = index == 4; // User tab is now at index 4
+                    final isUserTab = index == 5; // User tab is now at index 5
                     final avatarUrl = isUserTab && AuthService.isLoggedIn
                         ? AuthService.face
                         : null;
@@ -222,7 +236,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                       onTap: () => _handleSideBarTap(index), // 按确定键才刷新
                       // 用户标签按右键导航到设置分类标签
-                      onMoveRight: isUserTab && AuthService.isLoggedIn
+                      onMoveRight: index == 4
+                          ? () {
+                              _liveTabKey.currentState?.focusFirstItem();
+                            }
+                          : isUserTab && AuthService.isLoggedIn
                           ? () =>
                                 _loginTabKey.currentState?.focusFirstCategory()
                           : null,
@@ -273,10 +291,16 @@ class _HomeScreenState extends State<HomeScreen> {
           sidebarFocusNode: _sideBarFocusNodes[3],
           isVisible: _selectedTabIndex == 3,
         ),
-        // 4: 登录/用户
+        // 4: 直播
+        LiveTab(
+          key: _liveTabKey,
+          sidebarFocusNode: _sideBarFocusNodes[4],
+          isVisible: _selectedTabIndex == 4,
+        ),
+        // 5: 登录/用户
         LoginTab(
           key: _loginTabKey,
-          sidebarFocusNode: _sideBarFocusNodes[4],
+          sidebarFocusNode: _sideBarFocusNodes[5],
           onLoginSuccess: _refreshCurrentTab,
         ),
       ],

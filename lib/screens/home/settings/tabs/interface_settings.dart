@@ -26,6 +26,13 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
   late List<FocusNode> _categoryOrderFocusNodes;
   late List<FocusNode> _categoryToggleFocusNodes; // 分区开关焦点
 
+  // 直播分区排序相关
+  List<String> _liveCategoryOrder = [];
+  int _selectedLiveCategoryOrderIndex = 0;
+  bool _isLiveDragging = false;
+  late List<FocusNode> _liveCategoryOrderFocusNodes;
+  late List<FocusNode> _liveCategoryToggleFocusNodes;
+
   static const categoryLabels = {
     'recommend': '推荐',
     'popular': '热门',
@@ -55,6 +62,12 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
     for (var node in _categoryToggleFocusNodes) {
       node.dispose();
     }
+    for (var node in _liveCategoryOrderFocusNodes) {
+      node.dispose();
+    }
+    for (var node in _liveCategoryToggleFocusNodes) {
+      node.dispose();
+    }
     super.dispose();
   }
 
@@ -66,6 +79,16 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
     );
     _categoryToggleFocusNodes = List.generate(
       _categoryOrder.length,
+      (_) => FocusNode(),
+    );
+
+    _liveCategoryOrder = SettingsService.liveCategoryOrder;
+    _liveCategoryOrderFocusNodes = List.generate(
+      _liveCategoryOrder.length,
+      (_) => FocusNode(),
+    );
+    _liveCategoryToggleFocusNodes = List.generate(
+      _liveCategoryOrder.length,
       (_) => FocusNode(),
     );
   }
@@ -369,6 +392,299 @@ class _InterfaceSettingsState extends State<InterfaceSettings> {
                           );
                         },
                       ),
+                    );
+                  },
+                ),
+        ), // End of existing ListView
+        const SizedBox(height: 32),
+        // ==================== 直播分区设置 ====================
+        // 直播分区开关
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            children: [
+              Text(
+                '直播分区开关 (确认键切换)',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(width: 12),
+              _buildRestartHint(),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 36,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _liveCategoryOrder.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final catKey = _liveCategoryOrder[index];
+              final label =
+                  SettingsService.liveCategoryLabels[catKey] ?? catKey;
+              final isEnabled = SettingsService.isLiveCategoryEnabled(catKey);
+
+              return TvFocusScope(
+                pattern: FocusPattern.horizontal,
+                focusNode: _liveCategoryToggleFocusNodes[index],
+                onSelect: () {
+                  SettingsService.toggleLiveCategory(catKey, !isEnabled);
+                  setState(() {});
+                },
+                child: Builder(
+                  builder: (context) {
+                    final focused = Focus.of(context).hasFocus;
+                    return Container(
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: isEnabled
+                            ? const Color(0xFFfb7299).withValues(alpha: 0.3)
+                            : Colors.white.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: focused
+                              ? Colors.white
+                              : isEnabled
+                              ? const Color(0xFFfb7299)
+                              : Colors.transparent,
+                          width: focused ? 2 : 1,
+                        ),
+                      ),
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          color: isEnabled
+                              ? Colors.white
+                              : Colors.white.withValues(alpha: 0.5),
+                          fontSize: 12,
+                          fontWeight: focused
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 20),
+        // 直播分区排序标题
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            children: [
+              Text(
+                '直播分区排序 (仅显示已启用)',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(width: 12),
+              _buildRestartHint(),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            _isLiveDragging ? '← → 移动位置，确认键固定' : '确认键选中，← → 移动',
+            style: TextStyle(
+              color: _isLiveDragging
+                  ? const Color(0xFFfb7299)
+                  : Colors.white.withValues(alpha: 0.5),
+              fontSize: 12,
+            ),
+          ),
+        ),
+        SizedBox(
+          height: 36,
+          child:
+              _categoryOrder
+                  .where((name) => SettingsService.isLiveCategoryEnabled(name))
+                  .isEmpty
+              ? Center(
+                  child: Text(
+                    '请至少启用一个分区',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
+                  ),
+                )
+              : Builder(
+                  builder: (context) {
+                    final enabledLiveOrder = _liveCategoryOrder
+                        .where(
+                          (name) => SettingsService.isLiveCategoryEnabled(name),
+                        )
+                        .toList();
+                    return ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: enabledLiveOrder.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 8),
+                      itemBuilder: (context, index) {
+                        final catKey = enabledLiveOrder[index];
+                        final label =
+                            SettingsService.liveCategoryLabels[catKey] ??
+                            catKey;
+                        final isSelected =
+                            index == _selectedLiveCategoryOrderIndex;
+
+                        // 确保 focusNode 索引有效
+                        final focusNodeIndex = _liveCategoryOrder.indexOf(
+                          catKey,
+                        );
+                        if (focusNodeIndex < 0 ||
+                            focusNodeIndex >=
+                                _liveCategoryOrderFocusNodes.length) {
+                          return const SizedBox.shrink();
+                        }
+
+                        return Focus(
+                          focusNode:
+                              _liveCategoryOrderFocusNodes[focusNodeIndex],
+                          onFocusChange: (focused) {
+                            if (focused && !_isLiveDragging) {
+                              setState(
+                                () => _selectedLiveCategoryOrderIndex = index,
+                              );
+                            }
+                          },
+                          onKeyEvent: (node, event) {
+                            if (event is KeyUpEvent) {
+                              return KeyEventResult.ignored;
+                            }
+
+                            if (event is KeyDownEvent &&
+                                (event.logicalKey ==
+                                        LogicalKeyboardKey.select ||
+                                    event.logicalKey ==
+                                        LogicalKeyboardKey.enter)) {
+                              setState(
+                                () => _isLiveDragging = !_isLiveDragging,
+                              );
+                              return KeyEventResult.handled;
+                            }
+
+                            if (event.logicalKey ==
+                                LogicalKeyboardKey.arrowDown) {
+                              return KeyEventResult.handled;
+                            }
+
+                            if (_isLiveDragging) {
+                              final fullIndex = _liveCategoryOrder.indexOf(
+                                catKey,
+                              );
+
+                              if (event.logicalKey ==
+                                      LogicalKeyboardKey.arrowLeft &&
+                                  index > 0) {
+                                final prevCat = enabledLiveOrder[index - 1];
+                                final prevFullIndex = _liveCategoryOrder
+                                    .indexOf(prevCat);
+
+                                setState(() {
+                                  _liveCategoryOrder[fullIndex] = prevCat;
+                                  _liveCategoryOrder[prevFullIndex] = catKey;
+                                  _selectedLiveCategoryOrderIndex = index - 1;
+                                });
+                                SettingsService.setLiveCategoryOrder(
+                                  _liveCategoryOrder,
+                                );
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
+                                  _liveCategoryOrderFocusNodes[prevFullIndex]
+                                      .requestFocus();
+                                });
+                                return KeyEventResult.handled;
+                              }
+                              if (event.logicalKey ==
+                                      LogicalKeyboardKey.arrowRight &&
+                                  index < enabledLiveOrder.length - 1) {
+                                final nextCat = enabledLiveOrder[index + 1];
+                                final nextFullIndex = _liveCategoryOrder
+                                    .indexOf(nextCat);
+
+                                setState(() {
+                                  _liveCategoryOrder[fullIndex] = nextCat;
+                                  _liveCategoryOrder[nextFullIndex] = catKey;
+                                  _selectedLiveCategoryOrderIndex = index + 1;
+                                });
+                                SettingsService.setLiveCategoryOrder(
+                                  _liveCategoryOrder,
+                                );
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
+                                  _liveCategoryOrderFocusNodes[nextFullIndex]
+                                      .requestFocus();
+                                });
+                                return KeyEventResult.handled;
+                              }
+                            }
+
+                            // 上键跳转到直播分区开关区域
+                            if (event.logicalKey ==
+                                LogicalKeyboardKey.arrowUp) {
+                              // 跳到分区开关的对应位置
+                              if (index <
+                                  _liveCategoryToggleFocusNodes.length) {
+                                _liveCategoryToggleFocusNodes[index]
+                                    .requestFocus();
+                              } else if (_liveCategoryToggleFocusNodes
+                                  .isNotEmpty) {
+                                _liveCategoryToggleFocusNodes.first
+                                    .requestFocus();
+                              }
+                              return KeyEventResult.handled;
+                            }
+
+                            return KeyEventResult.ignored;
+                          },
+                          child: Builder(
+                            builder: (context) {
+                              final focused = Focus.of(context).hasFocus;
+                              return AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                alignment: Alignment.center,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _isLiveDragging && isSelected
+                                      ? const Color(0xFFfb7299)
+                                      : focused
+                                      ? Colors.white.withValues(alpha: 0.2)
+                                      : Colors.white.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: focused
+                                      ? Border.all(
+                                          color: Colors.white,
+                                          width: 2,
+                                        )
+                                      : null,
+                                ),
+                                child: Text(
+                                  label,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: focused
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
                     );
                   },
                 ),

@@ -201,7 +201,31 @@ class SettingsService {
 
   /// 是否默认隐藏控制栏
   static bool get hideControlsOnStart {
-    return _prefs?.getBool(_hideControlsOnStartKey) ?? false; // 默认显示
+    // 兼容直播 (User request: hide live controls by default setting)
+    return _prefs?.getBool(_hideControlsOnStartKey) ?? false;
+  }
+
+  // 直播: 默认隐藏控制栏设置
+  static const String _hideLiveControlsOnStartKey =
+      'hide_live_controls_on_start';
+  static bool get hideLiveControlsOnStart {
+    return _prefs?.getBool(_hideLiveControlsOnStartKey) ?? false;
+  }
+
+  static Future<void> setHideLiveControlsOnStart(bool value) async {
+    await init();
+    await _prefs!.setBool(_hideLiveControlsOnStartKey, value);
+  }
+
+  // 直播: 播放器右上角时间显示设置
+  static const String _showLiveTimeDisplayKey = 'show_live_time_display';
+  static bool get showLiveTimeDisplay {
+    return _prefs?.getBool(_showLiveTimeDisplayKey) ?? false;
+  }
+
+  static Future<void> setShowLiveTimeDisplay(bool value) async {
+    await init();
+    await _prefs!.setBool(_showLiveTimeDisplayKey, value);
   }
 
   /// 设置默认隐藏控制栏
@@ -312,5 +336,104 @@ class SettingsService {
   static Future<void> setSeekPreviewMode(bool value) async {
     await init();
     await _prefs!.setBool(_seekPreviewModeKey, value);
+  }
+
+  // ==================== 直播分区设置 ====================
+
+  static const Map<String, String> liveCategoryLabels = {
+    'online_games': '网游',
+    'mobile_games': '手游',
+    'console_games': '单机',
+    'virtual': '虚拟主播',
+    'entertainment': '娱乐',
+    'radio': '电台',
+    'match': '赛事',
+    'chat': '聊天室',
+    'lifestyle': '生活',
+    'knowledge': '知识',
+    'interactive': '互动玩法',
+  };
+
+  static const Map<String, int> liveCategoryIds = {
+    'online_games': 2,
+    'mobile_games': 3,
+    'console_games': 6,
+    'virtual': 9,
+    'entertainment': 1,
+    'radio': 5,
+    'match': 13,
+    'chat': 14,
+    'lifestyle': 10,
+    'knowledge': 11,
+    'interactive': 15,
+  };
+
+  static const List<String> _defaultLiveCategoryOrder = [
+    'online_games',
+    'mobile_games',
+    'console_games',
+    'virtual',
+    'entertainment',
+    'radio',
+    'match',
+    'chat',
+    'lifestyle',
+    'knowledge',
+    'interactive',
+  ];
+
+  static const String _liveCategoryOrderKey = 'live_category_order';
+  static const String _enabledLiveCategoriesKey = 'enabled_live_categories';
+
+  /// 获取直播分区顺序
+  static List<String> get liveCategoryOrder {
+    final saved = _prefs?.getStringList(_liveCategoryOrderKey);
+    if (saved != null && saved.isNotEmpty) {
+      final result = List<String>.from(saved);
+      for (final cat in _defaultLiveCategoryOrder) {
+        if (!result.contains(cat)) {
+          result.add(cat);
+        }
+      }
+      return result;
+    }
+    return List<String>.from(_defaultLiveCategoryOrder);
+  }
+
+  /// 设置直播分区顺序
+  static Future<void> setLiveCategoryOrder(List<String> order) async {
+    await init();
+    await _prefs!.setStringList(_liveCategoryOrderKey, order);
+  }
+
+  /// 获取启用的直播分区
+  static Set<String> get enabledLiveCategories {
+    final saved = _prefs?.getStringList(_enabledLiveCategoriesKey);
+    if (saved != null) {
+      return saved.toSet();
+    }
+    return _defaultLiveCategoryOrder.toSet();
+  }
+
+  /// 设置启用的直播分区
+  static Future<void> setEnabledLiveCategories(Set<String> categories) async {
+    await init();
+    await _prefs!.setStringList(_enabledLiveCategoriesKey, categories.toList());
+  }
+
+  /// 检查直播分区是否启用
+  static bool isLiveCategoryEnabled(String name) {
+    return enabledLiveCategories.contains(name);
+  }
+
+  /// 切换直播分区启用状态
+  static Future<void> toggleLiveCategory(String name, bool enabled) async {
+    final current = enabledLiveCategories;
+    if (enabled) {
+      current.add(name);
+    } else {
+      current.remove(name);
+    }
+    await setEnabledLiveCategories(current);
   }
 }

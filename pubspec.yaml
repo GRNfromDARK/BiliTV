@@ -55,6 +55,8 @@ dependencies:
 
   # Keep Screen On (prevent TV standby during playback)
   wakelock_plus: ^1.2.8
+  web_socket_channel: ^3.0.3
+  brotli: ^0.6.0
 
 dev_dependencies:
   flutter_test:
@@ -84,3 +86,4 @@ flutter:
     - assets/icons/like.svg
     - assets/icons/coin.svg
     - assets/icons/favorite.svg
+    - assets/icons/live.svg
