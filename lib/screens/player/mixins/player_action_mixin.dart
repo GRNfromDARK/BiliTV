@@ -267,6 +267,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
                 if (AuthService.sessdata != null)
                   'Cookie': 'SESSDATA=${AuthService.sessdata}',
               },
+              viewType: VideoViewType.platformView,
             );
 
             // 初始化
@@ -1168,6 +1169,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
             if (AuthService.sessdata != null)
               'Cookie': 'SESSDATA=${AuthService.sessdata}',
           },
+          viewType: VideoViewType.platformView,
         );
 
         await videoController!.initialize();
@@ -1283,6 +1285,7 @@ mixin PlayerActionMixin on PlayerStateMixin {
           if (AuthService.sessdata != null)
             'Cookie': 'SESSDATA=${AuthService.sessdata}',
         },
+        viewType: VideoViewType.platformView,
       );
 
       await videoController!.initialize();

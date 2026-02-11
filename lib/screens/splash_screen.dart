@@ -34,7 +34,10 @@ class _SplashScreenState extends State<SplashScreen> {
     bool videoInitSuccess = false;
 
     // 1. 初始化视频播放器 (尽早开始，与服务初始化并行)
-    _videoController = VideoPlayerController.asset('assets/icons/startup.mp4');
+    _videoController = VideoPlayerController.asset(
+      'assets/icons/startup.mp4',
+      viewType: VideoViewType.platformView,
+    );
     _videoCompleter = Completer<void>();
 
     // 视频初始化 Future，添加超时和错误处理
