@@ -11,6 +11,7 @@ import 'home/live_tab.dart';
 import 'home/following_tab.dart';
 import 'home/favorite_tab.dart';
 import '../widgets/tv_focusable_item.dart';
+import '../widgets/math_verify_dialog.dart';
 import '../services/auth_service.dart';
 import '../services/settings_service.dart';
 
@@ -28,6 +29,10 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedTabIndex = 0; // 默认选中"我的关注"
   DateTime? _lastBackPressed;
   DateTime? _backFromSearchHandled; // 防止搜索键盘返回键重复处理
+
+  // 家长锁：需要数学验证的 Tab 索引（搜索、推荐、动态、直播）
+  static const _restrictedTabs = {2, 3, 4, 6};
+  bool _parentVerified = false; // 本次会话是否已通过验证
 
   // Tab 顺序: 我的关注、我的收藏、搜索、首页、动态、历史、直播、登录
   final List<String> _tabIcons = [
@@ -126,7 +131,18 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  void _handleSideBarTap(int index) {
+  void _handleSideBarTap(int index) async {
+    // 家长锁：受限 Tab 需要数学验证
+    if (_restrictedTabs.contains(index) && !_parentVerified) {
+      final passed = await MathVerifyDialog.show(context);
+      if (!passed) {
+        // 验证失败或取消，回到当前安全 Tab
+        _sideBarFocusNodes[_selectedTabIndex].requestFocus();
+        return;
+      }
+      _parentVerified = true; // 本次会话通过验证
+    }
+
     if (index == _selectedTabIndex) {
       if (index == 0) {
         _followingTabKey.currentState?.refresh();
@@ -249,7 +265,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       isSelected: _selectedTabIndex == index,
                       focusNode: _sideBarFocusNodes[index],
                       onFocus: () {
-                        // 焦点移动时只切换标签页，不刷新任何内容
+                        // 焦点移动时切换标签页（受限 Tab 未验证时不切换内容）
+                        if (_restrictedTabs.contains(index) && !_parentVerified) {
+                          // 不切换到受限 Tab 的内容，保持在当前 Tab
+                          return;
+                        }
                         setState(() => _selectedTabIndex = index);
                       },
                       onTap: () => _handleSideBarTap(index), // 按确定键才刷新
