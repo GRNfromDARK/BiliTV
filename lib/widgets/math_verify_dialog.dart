@@ -239,7 +239,7 @@ class _MathVerifyDialogState extends State<MathVerifyDialog> {
   }
 }
 
-/// 数学题生成器
+/// 数学题生成器 — 难度较高，需要计算器辅助
 class _MathPuzzle {
   final List<String> equations;
   final int answer;
@@ -248,69 +248,95 @@ class _MathPuzzle {
 
   static _MathPuzzle generate() {
     final random = Random();
-    final type = random.nextInt(3);
+    final type = random.nextInt(4);
 
     switch (type) {
       case 0:
-        return _generateThreeVar(random);
+        return _generateMultiStep(random);
       case 1:
-        return _generateTwoVar(random);
+        return _generateSystem(random);
+      case 2:
+        return _generateSquareRoot(random);
       default:
-        return _generateSimple(random);
+        return _generateMixedOps(random);
     }
   }
 
-  /// 三元方程: x + y + z = S, x = a, z = c, y = ?
-  static _MathPuzzle _generateThreeVar(Random random) {
-    final x = random.nextInt(10) + 1;
-    final z = random.nextInt(10) + 1;
-    final y = random.nextInt(15) + 1;
-    final sum = x + y + z;
+  /// 多步运算: a × b + c × d - e = ?
+  /// 例: 37 × 14 + 23 × 9 - 156 = ?  →  需要计算器
+  static _MathPuzzle _generateMultiStep(Random random) {
+    final a = random.nextInt(40) + 20;  // 20-59
+    final b = random.nextInt(15) + 8;   // 8-22
+    final c = random.nextInt(30) + 15;  // 15-44
+    final d = random.nextInt(10) + 5;   // 5-14
+    final e = random.nextInt(200) + 50; // 50-249
+    final answer = a * b + c * d - e;
+
+    return _MathPuzzle(
+      equations: ['$a × $b + $c × $d - $e = ?'],
+      answer: answer,
+    );
+  }
+
+  /// 三元方程组（含乘法）:
+  /// a×x + b×y + c×z = S
+  /// x = v1, y = v2
+  /// z = ?
+  static _MathPuzzle _generateSystem(Random random) {
+    final a = random.nextInt(6) + 3;   // 3-8
+    final b = random.nextInt(5) + 4;   // 4-8
+    final c = random.nextInt(7) + 2;   // 2-8
+    final x = random.nextInt(10) + 5;  // 5-14
+    final y = random.nextInt(10) + 5;  // 5-14
+    final z = random.nextInt(10) + 5;  // 5-14
+    final sum = a * x + b * y + c * z;
 
     final vars = ['x', 'y', 'z'];
-    final unknownIdx = random.nextInt(3);
-    final unknown = vars[unknownIdx];
+    final coeffs = [a, b, c];
     final values = [x, y, z];
+    final unknownIdx = random.nextInt(3);
     final answer = values[unknownIdx];
 
-    final equations = <String>['x + y + z = $sum'];
+    final equations = <String>[
+      '${coeffs[0]}×x + ${coeffs[1]}×y + ${coeffs[2]}×z = $sum',
+    ];
     for (int i = 0; i < 3; i++) {
       if (i != unknownIdx) {
         equations.add('${vars[i]} = ${values[i]}');
       }
     }
-    equations.add('$unknown = ?');
+    equations.add('${vars[unknownIdx]} = ?');
 
     return _MathPuzzle(equations: equations, answer: answer);
   }
 
-  /// 二元方程: a × x + b = c, x = ?
-  static _MathPuzzle _generateTwoVar(Random random) {
-    final x = random.nextInt(8) + 2;
-    final a = random.nextInt(5) + 2;
-    final b = random.nextInt(10) + 1;
-    final c = a * x + b;
+  /// 平方相关: a² + b² - c = ?
+  /// 例: 17² + 13² - 89 = ?  →  289 + 169 - 89 = 369
+  static _MathPuzzle _generateSquareRoot(Random random) {
+    final a = random.nextInt(15) + 11; // 11-25
+    final b = random.nextInt(12) + 8;  // 8-19
+    final c = random.nextInt(100) + 30; // 30-129
+    final answer = a * a + b * b - c;
 
     return _MathPuzzle(
-      equations: [
-        '$a × x + $b = $c',
-        'x = ?',
-      ],
-      answer: x,
+      equations: ['$a² + $b² - $c = ?'],
+      answer: answer,
     );
   }
 
-  /// 简单方程: a + b - c = ?, 给出 a, b, c
-  static _MathPuzzle _generateSimple(Random random) {
-    final a = random.nextInt(20) + 5;
-    final b = random.nextInt(15) + 1;
-    final c = random.nextInt(10) + 1;
-    final answer = a + b - c;
+  /// 混合四则运算（大数）: (a + b) × c - d ÷ e = ?
+  /// 确保 d 能被 e 整除
+  static _MathPuzzle _generateMixedOps(Random random) {
+    final a = random.nextInt(50) + 30;  // 30-79
+    final b = random.nextInt(40) + 20;  // 20-59
+    final c = random.nextInt(8) + 5;    // 5-12
+    final e = random.nextInt(6) + 2;    // 2-7
+    final dBase = random.nextInt(30) + 10; // 10-39
+    final d = dBase * e; // 确保整除
+    final answer = (a + b) * c - dBase;
 
     return _MathPuzzle(
-      equations: [
-        '$a + $b - $c = ?',
-      ],
+      equations: ['($a + $b) × $c - $d ÷ $e = ?'],
       answer: answer,
     );
   }
