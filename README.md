@@ -14,9 +14,10 @@
 
 | 功能 | 说明 |
 |------|------|
-| **我的关注（默认首页）** | 聚合所有关注 UP主 的视频，按发布时间倒序排列。孩子打开电视直接看到家长筛选的内容 |
+| **我的关注（默认首页）** | 聚合所有关注 UP主 的视频，按发布时间倒序排列。使用 `type=video` API 确保每页全是视频（不夹杂图文/转发动态）。孩子打开电视直接看到家长筛选的内容 |
 | **我的收藏** | 浏览 B站云端收藏夹，家长可以提前收藏好视频，孩子在电视上观看 |
 | **家长锁** | 搜索、推荐、动态、直播 4 个 Tab 需要解数学方程才能进入。题目需计算器辅助（如 `37×14 + 23×9 - 156 = ?`），验证通过后本次会话有效，重启 app 重置 |
+| **自动刷新** | 切换 Tab 时，如果距上次加载超过 10 分钟自动刷新数据；在当前 Tab 按确认键可强制刷新 |
 
 ### 保留的原有功能
 
@@ -27,8 +28,9 @@
 - 新增 `lib/screens/home/following_tab.dart` — 我的关注 Tab
 - 新增 `lib/screens/home/favorite_tab.dart` — 我的收藏 Tab
 - 新增 `lib/widgets/math_verify_dialog.dart` — 家长锁数学验证
-- 新增 `lib/services/api/interaction_api.dart` 中的收藏夹 API（`getFavoriteFolders` / `getFavoriteVideos`）
-- 修改 `lib/screens/home_screen.dart` — Tab 注册、导航索引、家长锁拦截
+- 新增 `video_api.dart` 中的 `getDynamicVideoFeed()` — 仅视频的动态 API（`type=video`）
+- 新增 `interaction_api.dart` 中的收藏夹 API（`getFavoriteFolders` / `getFavoriteVideos`）
+- 修改 `lib/screens/home_screen.dart` — Tab 注册、导航索引、家长锁拦截、600 秒自动刷新
 - 新增 `.github/workflows/build-apk.yml` — GitHub Actions 自动编译
 
 ---
