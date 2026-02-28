@@ -80,13 +80,41 @@
 
 ## 📦 编译
 
+### macOS 本地编译（无需 Android Studio）
+
+**前置安装（一次性）：**
+```bash
+# 1. 安装 JDK 17
+brew install openjdk@17
+
+# 2. 安装 Flutter SDK
+git clone --depth 1 --branch 3.41.2 https://github.com/flutter/flutter.git /opt/homebrew/opt/flutter
+```
+
+**编译 APK：**
 ```bash
 # 获取依赖
+JAVA_HOME="/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home" \
+PATH="/opt/homebrew/opt/flutter/bin:$PATH" \
 flutter pub get
 
-# 编译 APK (Android TV)
-flutter build apk --target-platform android-arm64
+# 编译 Release APK
+JAVA_HOME="/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home" \
+PATH="/opt/homebrew/opt/flutter/bin:$PATH" \
+flutter build apk --release
+
+# 产物位置: build/app/outputs/flutter-apk/app-release.apk
 ```
+
+**卸载（完全清理）：**
+```bash
+brew uninstall openjdk@17
+rm -rf /opt/homebrew/opt/flutter
+```
+
+### GitHub Actions 云端编译
+
+推送到 `main` 分支后自动触发编译，在 Actions → Artifacts 下载 APK。
 
 ## 🙏 致谢
 
