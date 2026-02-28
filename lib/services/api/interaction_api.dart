@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'base_api.dart';
 import 'sign_utils.dart';
 import '../auth_service.dart';
+import '../../models/video.dart';
 
 /// 用户互动相关 API (点赞/投币/收藏/关注)
 class InteractionApi {
@@ -267,5 +268,99 @@ class InteractionApi {
       // 忽略错误
     }
     return false;
+  }
+
+  /// 获取所有收藏夹列表
+  static Future<List<Map<String, dynamic>>> getFavoriteFolders() async {
+    if (!AuthService.isLoggedIn) return [];
+    try {
+      final mid = AuthService.mid;
+      if (mid == null) return [];
+
+      final uri = Uri.parse(
+        '${BaseApi.apiBase}/x/v3/fav/folder/created/list-all',
+      ).replace(queryParameters: {'up_mid': mid.toString()});
+      final response = await http.get(
+        uri,
+        headers: BaseApi.getHeaders(withCookie: true),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['code'] == 0 && json['data'] != null) {
+          final list = json['data']['list'] as List?;
+          if (list != null) {
+            return list.map<Map<String, dynamic>>((item) {
+              return {
+                'id': item['id'] ?? 0,
+                'title': item['title'] ?? '',
+                'mediaCount': item['media_count'] ?? 0,
+              };
+            }).toList();
+          }
+        }
+      }
+    } catch (e) {
+      // 忽略错误
+    }
+    return [];
+  }
+
+  /// 获取收藏夹中的视频列表
+  static Future<Map<String, dynamic>> getFavoriteVideos({
+    required int folderId,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    if (!AuthService.isLoggedIn) return {'videos': <Video>[], 'hasMore': false};
+    try {
+      final uri = Uri.parse(
+        '${BaseApi.apiBase}/x/v3/fav/resource/list',
+      ).replace(queryParameters: {
+        'media_id': folderId.toString(),
+        'pn': page.toString(),
+        'ps': pageSize.toString(),
+        'order': 'mtime',
+        'platform': 'web',
+      });
+      final response = await http.get(
+        uri,
+        headers: BaseApi.getHeaders(withCookie: true),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['code'] == 0 && json['data'] != null) {
+          final medias = json['data']['medias'] as List?;
+          final hasMore = json['data']['has_more'] == true;
+          final videos = <Video>[];
+
+          if (medias != null) {
+            for (final item in medias) {
+              final upper = item['upper'] as Map<String, dynamic>? ?? {};
+              final cntInfo = item['cnt_info'] as Map<String, dynamic>? ?? {};
+
+              videos.add(Video(
+                bvid: item['bvid'] ?? '',
+                title: item['title'] ?? '',
+                pic: BaseApi.fixPicUrl(item['cover'] ?? ''),
+                ownerName: upper['name'] ?? '',
+                ownerFace: BaseApi.fixPicUrl(upper['face'] ?? ''),
+                ownerMid: BaseApi.toInt(upper['mid']),
+                view: BaseApi.toInt(cntInfo['play']),
+                danmaku: BaseApi.toInt(cntInfo['danmaku']),
+                duration: item['duration'] ?? 0,
+                pubdate: item['pubtime'] ?? 0,
+              ));
+            }
+          }
+
+          return {'videos': videos, 'hasMore': hasMore};
+        }
+      }
+    } catch (e) {
+      // 忽略错误
+    }
+    return {'videos': <Video>[], 'hasMore': false};
   }
 }

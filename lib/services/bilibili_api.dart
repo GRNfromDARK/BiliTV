@@ -172,4 +172,17 @@ class BilibiliApi {
   /// 检查是否已关注
   static Future<bool> checkFollowStatus(int mid) =>
       InteractionApi.checkFollowStatus(mid);
+
+  /// 获取所有收藏夹列表
+  static Future<List<Map<String, dynamic>>> getFavoriteFolders() =>
+      InteractionApi.getFavoriteFolders();
+
+  /// 获取收藏夹中的视频列表
+  static Future<Map<String, dynamic>> getFavoriteVideos({
+    required int folderId,
+    int page = 1,
+    int pageSize = 20,
+  }) => InteractionApi.getFavoriteVideos(
+    folderId: folderId, page: page, pageSize: pageSize,
+  );
 }
