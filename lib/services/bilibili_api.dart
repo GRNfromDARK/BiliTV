@@ -77,9 +77,13 @@ class BilibiliApi {
 
   // ========== 动态相关 ==========
 
-  /// 获取动态视频列表
+  /// 获取动态视频列表（所有类型：视频+图文+转发）
   static Future<DynamicFeed> getDynamicFeed({String offset = ''}) =>
       VideoApi.getDynamicFeed(offset: offset);
+
+  /// 获取关注的视频动态（仅视频，不含图文/转发）
+  static Future<DynamicFeed> getDynamicVideoFeed({String offset = ''}) =>
+      VideoApi.getDynamicVideoFeed(offset: offset);
 
   /// 获取相关视频
   static Future<List<Video>> getRelatedVideos(String bvid) =>

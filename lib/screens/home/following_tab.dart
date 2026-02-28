@@ -114,7 +114,8 @@ class FollowingTabState extends State<FollowingTab> {
 
     if (!_hasMore && !refresh) return;
 
-    final feed = await BilibiliApi.getDynamicFeed(
+    // 使用 type=video 只获取视频动态，确保每页都是满的
+    final feed = await BilibiliApi.getDynamicVideoFeed(
       offset: refresh ? '' : _offset,
     );
 

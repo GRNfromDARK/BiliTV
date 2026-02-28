@@ -319,6 +319,85 @@ class VideoApi {
     return DynamicFeed(videos: [], offset: '', hasMore: false);
   }
 
+  /// 获取关注的视频动态列表（仅视频，不含图文/转发）
+  static Future<DynamicFeed> getDynamicVideoFeed({String offset = ''}) async {
+    try {
+      await BaseApi.ensureWbiKeys();
+
+      final response = await http.get(
+        Uri.parse(
+          '${BaseApi.apiBase}/x/polymer/web-dynamic/v1/feed/all?type=video&offset=$offset&timezone_offset=-480&features=itemOpusStyle',
+        ),
+        headers: BaseApi.getHeaders(withCookie: true),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        if (json['code'] == 0 && json['data'] != null) {
+          final data = json['data'];
+          final items = data['items'] as List? ?? [];
+          final newOffset = data['offset'] as String? ?? '';
+          final hasMore = data['has_more'] as bool? ?? false;
+
+          final videos = <Video>[];
+
+          for (final item in items) {
+            try {
+              if (item['visible'] != true) continue;
+
+              final modules = item['modules'] as Map<String, dynamic>? ?? {};
+              final dynamicModule =
+                  modules['module_dynamic'] as Map<String, dynamic>? ?? {};
+              final major =
+                  dynamicModule['major'] as Map<String, dynamic>? ?? {};
+
+              if (major['type'] != 'MAJOR_TYPE_ARCHIVE') continue;
+
+              final archive = major['archive'] as Map<String, dynamic>? ?? {};
+              final author =
+                  modules['module_author'] as Map<String, dynamic>? ?? {};
+              final stat = archive['stat'] as Map<String, dynamic>? ?? {};
+
+              final viewValue = stat['play'] ?? stat['view'] ?? 0;
+              final danmakuValue = stat['danmaku'] ?? 0;
+
+              videos.add(
+                Video(
+                  bvid: archive['bvid'] ?? '',
+                  title: archive['title'] ?? '',
+                  pic: BaseApi.fixPicUrl(archive['cover'] ?? ''),
+                  ownerName: author['name'] ?? '',
+                  ownerFace: BaseApi.fixPicUrl(author['face'] ?? ''),
+                  ownerMid: author['mid'] ?? 0,
+                  view: BaseApi.toInt(viewValue),
+                  danmaku: BaseApi.toInt(danmakuValue),
+                  duration: BaseApi.parseDuration(
+                    archive['duration_text'] ?? '',
+                  ),
+                  pubdate: author['pub_ts'] ?? 0,
+                  badge:
+                      (archive['badge'] as Map<String, dynamic>?)?['text'] ??
+                      '',
+                ),
+              );
+            } catch (e) {
+              continue;
+            }
+          }
+
+          return DynamicFeed(
+            videos: videos,
+            offset: newOffset,
+            hasMore: hasMore,
+          );
+        }
+      }
+    } catch (e) {
+      // 忽略错误
+    }
+    return DynamicFeed(videos: [], offset: '', hasMore: false);
+  }
+
   /// 获取相关视频
   static Future<List<Video>> getRelatedVideos(String bvid) async {
     try {

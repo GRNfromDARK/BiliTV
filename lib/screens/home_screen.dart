@@ -34,6 +34,10 @@ class _HomeScreenState extends State<HomeScreen> {
   static const _restrictedTabs = {2, 3, 4, 6};
   bool _parentVerified = false; // 本次会话是否已通过验证
 
+  // 自动刷新：记录每个 Tab 上次加载的时间，超过 600 秒自动刷新
+  static const _autoRefreshSeconds = 600;
+  final Map<int, DateTime> _tabLastLoadTime = {};
+
   // Tab 顺序: 我的关注、我的收藏、搜索、首页、动态、历史、直播、登录
   final List<String> _tabIcons = [
     'assets/icons/dynamic.svg',   // 0: 我的关注
@@ -131,6 +135,40 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  /// 检查是否需要自动刷新（距上次加载 > 600 秒）
+  void _autoRefreshIfNeeded(int index) {
+    final lastLoad = _tabLastLoadTime[index];
+    if (lastLoad == null ||
+        DateTime.now().difference(lastLoad).inSeconds >= _autoRefreshSeconds) {
+      _refreshTabByIndex(index);
+    }
+  }
+
+  /// 刷新指定 Tab 并记录时间
+  void _refreshTabByIndex(int index) {
+    _tabLastLoadTime[index] = DateTime.now();
+    switch (index) {
+      case 0:
+        _followingTabKey.currentState?.refresh();
+        break;
+      case 1:
+        _favoriteTabKey.currentState?.refresh();
+        break;
+      case 3:
+        _homeTabKey.currentState?.refreshCurrentCategory();
+        break;
+      case 4:
+        _dynamicTabKey.currentState?.refresh();
+        break;
+      case 5:
+        _historyTabKey.currentState?.refresh();
+        break;
+      case 6:
+        _liveTabKey.currentState?.refresh();
+        break;
+    }
+  }
+
   void _handleSideBarTap(int index) async {
     // 家长锁：受限 Tab 需要数学验证
     if (_restrictedTabs.contains(index) && !_parentVerified) {
@@ -143,37 +181,15 @@ class _HomeScreenState extends State<HomeScreen> {
       _parentVerified = true; // 本次会话通过验证
     }
 
+    // 按确认键：强制刷新当前 Tab
     if (index == _selectedTabIndex) {
-      if (index == 0) {
-        _followingTabKey.currentState?.refresh();
-      } else if (index == 1) {
-        _favoriteTabKey.currentState?.refresh();
-      } else if (index == 3) {
-        _homeTabKey.currentState?.refreshCurrentCategory();
-      } else if (index == 4) {
-        _dynamicTabKey.currentState?.refresh();
-      } else if (index == 5) {
-        _historyTabKey.currentState?.refresh();
-      } else if (index == 6) {
-        _liveTabKey.currentState?.refresh();
-      }
+      _refreshTabByIndex(index);
       return;
     }
 
     setState(() => _selectedTabIndex = index);
     _sideBarFocusNodes[index].requestFocus();
-
-    if (index == 0) {
-      _followingTabKey.currentState?.refresh();
-    } else if (index == 1) {
-      _favoriteTabKey.currentState?.refresh();
-    } else if (index == 4) {
-      _dynamicTabKey.currentState?.refresh();
-    } else if (index == 5) {
-      _historyTabKey.currentState?.refresh();
-    } else if (index == 6) {
-      _liveTabKey.currentState?.refresh();
-    }
+    _refreshTabByIndex(index);
   }
 
   void _refreshCurrentTab() {
@@ -267,10 +283,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       onFocus: () {
                         // 焦点移动时切换标签页（受限 Tab 未验证时不切换内容）
                         if (_restrictedTabs.contains(index) && !_parentVerified) {
-                          // 不切换到受限 Tab 的内容，保持在当前 Tab
                           return;
                         }
+                        final previousIndex = _selectedTabIndex;
                         setState(() => _selectedTabIndex = index);
+                        // 自动刷新：切换到新 Tab 时，如果超过 600 秒则自动刷新
+                        if (index != previousIndex) {
+                          _autoRefreshIfNeeded(index);
+                        }
                       },
                       onTap: () => _handleSideBarTap(index), // 按确定键才刷新
                       // 用户标签按右键导航到设置分类标签
