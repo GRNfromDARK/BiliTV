@@ -1,84 +1,59 @@
-# BiliTV 📺
+# BiliTV Kids - 给孩子看好视频的电视客户端
 
-一款专为 Android TV 设计的第三方哔哩哔哩客户端，使用 Flutter 开发。从图标到开屏动画到全部代码100%由AI开发，本人只负责提出需求和测试，测试设备有限，仅测试了索尼电视（armv7,安卓9）和redmi G Pro 27U（armv8,澎湃OS2）显示器，理论支持的最低安卓版本为安卓5，其他设备请自行测试。
+> Fork 自 [Hyper-Beast/BiliTV](https://github.com/Hyper-Beast/BiliTV)，一款 Android TV 第三方哔哩哔哩客户端。
 
-更新功能是我自己内测使用，开源版本未实装
+## 使用场景
 
-## ✨ 功能特色
+家长提前在 B站关注优质的教育、科普、纪录片等 UP主，孩子打开电视后只能看到这些**家长筛选过的内容**。搜索、推荐、直播等开放性功能被家长锁保护，孩子无法自行访问。
 
+**解决的问题：** 孩子想看电视，但 B站推荐算法不可控。这个方案让家长决定孩子能看什么，同时保留 B站丰富的优质内容库。
 
-### 截图展示
-<img width="189" height="139" alt="image" src="https://github.com/user-attachments/assets/52b04c2a-85b6-4e35-bc3b-10e6bd588a4e" />
-<img width="1193" height="666" alt="image" src="https://github.com/user-attachments/assets/7d779704-6709-49a3-957a-4253403bd71e" />
-<img width="1203" height="668" alt="image" src="https://github.com/user-attachments/assets/b6784e77-96c5-40da-b567-9e8c6574b704" />
-<img width="1069" height="569" alt="image" src="https://github.com/user-attachments/assets/209de939-bc94-4dc3-a8fd-1d9c57c4378d" />
-<img width="1080" height="558" alt="image" src="https://github.com/user-attachments/assets/aeb84e09-7388-4ab6-b9be-b0da0340ddde" />
+## 相比上游项目的改动
 
+### 新增功能
 
+| 功能 | 说明 |
+|------|------|
+| **我的关注（默认首页）** | 聚合所有关注 UP主 的视频，按发布时间倒序排列。孩子打开电视直接看到家长筛选的内容 |
+| **我的收藏** | 浏览 B站云端收藏夹，家长可以提前收藏好视频，孩子在电视上观看 |
+| **家长锁** | 搜索、推荐、动态、直播 4 个 Tab 需要解数学方程才能进入。题目需计算器辅助（如 `37×14 + 23×9 - 156 = ?`），验证通过后本次会话有效，重启 app 重置 |
 
+### 保留的原有功能
 
+视频播放（多画质 / 弹幕 / 进度记忆 / 连播）、观看历史、搜索、推荐、直播、QR码登录、插件系统等全部保留，未做删减。
 
+### 技术变更
 
-### 🎬 视频播放
-- **多编解码器支持** - H.264 / H.265 / AV1 硬件解码，自动选择最优编码
-- **DASH 视频流** - 高质量视频 + 独立音轨播放
-- **多画质切换** - 支持 4K/1080P+/1080P/720P/480P 等多种画质
-- **实时弹幕** - 完整弹幕体验，支持开关、透明度、字体大小、显示区域调节
-- **弹幕倍速同步** - 弹幕飞行速度随播放倍速自动调整
-- **播放进度记忆** - 自动保存播放进度，下次打开自动续播
-- **自动连播** - 支持多P视频自动播放下一集，播完自动播放推荐
-- **快进预览** - 拖动进度条时实时预览画面（雪碧图预览）
-- **多P雪碧图支持** - 切换分P时自动加载对应预览图
+- 新增 `lib/screens/home/following_tab.dart` — 我的关注 Tab
+- 新增 `lib/screens/home/favorite_tab.dart` — 我的收藏 Tab
+- 新增 `lib/widgets/math_verify_dialog.dart` — 家长锁数学验证
+- 新增 `lib/services/api/interaction_api.dart` 中的收藏夹 API（`getFavoriteFolders` / `getFavoriteVideos`）
+- 修改 `lib/screens/home_screen.dart` — Tab 注册、导航索引、家长锁拦截
+- 新增 `.github/workflows/build-apk.yml` — GitHub Actions 自动编译
 
-### 📱 用户功能
-- **二维码登录** - 使用手机扫码快速登录
-- **动态页面** - 查看关注UP主的最新动态
-- **观看历史** - 自动记录并同步云端历史，显示"已看完"状态
-- **搜索功能** - 支持关键词搜索，保存搜索历史（最多10条）
-- **推荐视频** - 首页展示个性化推荐内容
-- **分区浏览** - 动画、游戏、音乐、科技等多分区内容
-- **分区管理** - 自定义首页分区顺序和启用状态
+---
 
-### 🎮 TV 遥控器优化
-- **完整遥控器支持** - 方向键导航、确认键选择、返回键退出
-- **焦点系统** - 清晰的焦点高亮，便于遥控器操作
-- **快速切换** - 侧边栏一键切换首页/动态/搜索/历史/用户
-- **播放器快捷键** - 左右快进快退、上下调节音量、确认暂停
+## 快速开始
 
-### 🔌 插件系统
-- **空降助手** - 基于 SponsorBlock 数据库自动跳过广告、赞助、片头片尾
-- **视频过滤** - 按关键词/UP主屏蔽不想看的视频，过滤低质量内容
-- **弹幕屏蔽** - 按关键词屏蔽弹幕，支持精确匹配和模糊匹配
-- **插件中心** - 统一管理插件开关和配置
+### 1. 登录
 
-### ⚙️ 设置选项
+在电视端打开 **设置** Tab → 扫描二维码登录你的 B站账号。
 
-#### 播放设置
-- **首选编解码器** - 选择 H.264/H.265/AV1 或自动
-- **自动连播开关** - 可选择是否自动播放下一个视频
-- **快进预览** - 开启/关闭拖动进度条时的预览
+### 2. 准备内容
 
-#### 界面设置
-- **启动动画** - 开启/关闭应用启动动画
-- **迷你进度条** - 播放器底部常驻进度条
-- **默认隐藏控制栏** - 播放时自动隐藏控制条
-- **播放器时间显示** - 右上角常驻时间
-- **分区排序** - 自定义首页分区顺序
+在手机/电脑的 B站上：
+- **关注**你希望孩子看的 UP主（教育、科普、纪录片等）
+- **收藏**优质视频到收藏夹
 
-#### 存储设置
-- **清除缓存** - 清除图片缓存和搜索记录
-- **清除播放记录** - 清除本地播放进度
+### 3. 孩子使用
 
-## 🛠️ 技术栈
-- **Flutter 3.10+** - 跨平台 UI 框架
-- **video_player + ExoPlayer** - 视频播放引擎，支持 DASH 格式
-- **canvas_danmaku** - 弹幕渲染引擎
-- **cached_network_image** - 图片缓存（限制 200MB，内存缓存 500张）
-- **shared_preferences** - 本地数据存储
-- **keframe** - 列表渲染性能优化
-- **http** - 网络请求
+孩子打开电视 → 默认进入「我的关注」→ 看到家长筛选的视频 → 遥控器选择播放。
 
-## 📦 编译
+如果孩子试图进入搜索 / 推荐 / 直播，会弹出数学题验证（需要计算器才能解出），孩子无法自行通过。
+
+---
+
+## 编译
 
 ### macOS 本地编译（无需 Android Studio）
 
@@ -116,37 +91,17 @@ rm -rf /opt/homebrew/opt/flutter
 
 推送到 `main` 分支后自动触发编译，在 Actions → Artifacts 下载 APK。
 
-## 🙏 致谢
+---
 
-本项目基于以下开源项目开发，特此感谢：
+## 致谢
 
-### 原始项目
-- **[BiliPai](https://github.com/jay3-yy/BiliPai)** - 本项目的基础，感谢原作者的工作
+- **[Hyper-Beast/BiliTV](https://github.com/Hyper-Beast/BiliTV)** — 本项目的上游，提供了完整的 Android TV 哔哩哔哩客户端
+- **[jay3-yy/BiliPai](https://github.com/jay3-yy/BiliPai)** — BiliTV 的原始基础项目
 
-### 依赖库
-| 库名 | 用途 |
-|------|------|
-| [video_player](https://pub.dev/packages/video_player) | 视频播放引擎 |
-| [canvas_danmaku](https://pub.dev/packages/canvas_danmaku) | 弹幕渲染 |
-| [cached_network_image](https://pub.dev/packages/cached_network_image) | 图片缓存 |
-| [flutter_cache_manager](https://pub.dev/packages/flutter_cache_manager) | 缓存管理 |
-| [shared_preferences](https://pub.dev/packages/shared_preferences) | 本地存储 |
-| [http](https://pub.dev/packages/http) | 网络请求 |
-| [qr_flutter](https://pub.dev/packages/qr_flutter) | 二维码生成 |
-| [crypto](https://pub.dev/packages/crypto) | MD5 签名 |
-| [keframe](https://pub.dev/packages/keframe) | 列表性能优化 |
-| [fluttertoast](https://pub.dev/packages/fluttertoast) | Toast 提示 |
-| [flutter_svg](https://pub.dev/packages/flutter_svg) | SVG 图标 |
-| [marquee](https://pub.dev/packages/marquee) | 滚动文字 |
-| [wakelock_plus](https://pub.dev/packages/wakelock_plus) | 屏幕常亮 |
-| [path_provider](https://pub.dev/packages/path_provider) | 文件路径 |
-| [package_info_plus](https://pub.dev/packages/package_info_plus) | 应用信息 |
-| [permission_handler](https://pub.dev/packages/permission_handler) | 权限管理 |
+## 免责声明
 
-## ⚠️ 免责声明
+本项目仅供学习交流和个人家庭使用，请勿用于商业用途。视频内容版权归哔哩哔哩及原作者所有。
 
-本项目仅供学习交流使用，请勿用于商业用途。视频内容版权归哔哩哔哩及原作者所有。
-
-## 📄 许可证
+## 许可证
 
 MIT License
