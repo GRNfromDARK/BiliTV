@@ -35,6 +35,7 @@ class FollowingTabState extends State<FollowingTab> {
   bool _isLoadingMore = false;
   bool _hasLoaded = false;
   bool _isRefreshing = false; // 标记是否正在刷新中（用于控制分帧渲染）
+  bool _firstLoadNotified = false; // 确保 onFirstLoadComplete 只触发一次
   // 每个视频卡片的 FocusNode
   final Map<int, FocusNode> _videoFocusNodes = {};
 
@@ -43,7 +44,18 @@ class FollowingTabState extends State<FollowingTab> {
     super.initState();
     // 只有第一次可见时才加载
     if (widget.isVisible) {
-      _loadDynamic(refresh: true);
+      if (AuthService.isLoggedIn) {
+        _loadDynamic(refresh: true);
+      } else {
+        // 未登录时也要触发焦点系统激活
+        _isLoading = false;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!_firstLoadNotified) {
+            _firstLoadNotified = true;
+            widget.onFirstLoadComplete?.call();
+          }
+        });
+      }
       _hasLoaded = true;
     }
     _scrollController.addListener(_onScroll);
@@ -126,8 +138,9 @@ class FollowingTabState extends State<FollowingTab> {
       _isRefreshing = false; // 刷新完成
     });
 
-    // 首次加载完成回调
-    if (refresh) {
+    // 首次加载完成回调（只触发一次，避免无限循环）
+    if (!_firstLoadNotified && _videos.isNotEmpty) {
+      _firstLoadNotified = true;
       widget.onFirstLoadComplete?.call();
     }
   }

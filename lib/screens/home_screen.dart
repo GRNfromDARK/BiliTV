@@ -96,16 +96,9 @@ class _HomeScreenState extends State<HomeScreen> {
     _preloadOtherTabs();
   }
 
-  // 后台预加载其他标签
+  // 后台预加载其他标签（FollowingTab 作为默认首页已自动加载，无需预加载）
   void _preloadOtherTabs() {
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (!mounted) return;
-      if (AuthService.isLoggedIn) {
-        _followingTabKey.currentState?.refresh();
-      }
-    });
-
-    Future.delayed(const Duration(milliseconds: 800), () {
+    Future.delayed(const Duration(milliseconds: 500), () {
       if (!mounted) return;
       if (AuthService.isLoggedIn) {
         _dynamicTabKey.currentState?.refresh();
