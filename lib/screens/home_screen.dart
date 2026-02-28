@@ -8,6 +8,8 @@ import 'home/search_tab.dart';
 import 'home/login_tab.dart';
 import 'home/dynamic_tab.dart';
 import 'home/live_tab.dart';
+import 'home/following_tab.dart';
+import 'home/favorite_tab.dart';
 import '../widgets/tv_focusable_item.dart';
 import '../services/auth_service.dart';
 import '../services/settings_service.dart';
@@ -23,18 +25,20 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedTabIndex = 1; // 默认选中首页
+  int _selectedTabIndex = 0; // 默认选中"我的关注"
   DateTime? _lastBackPressed;
   DateTime? _backFromSearchHandled; // 防止搜索键盘返回键重复处理
 
-  // Tab 顺序: 搜索、首页、动态、历史、直播、登录
+  // Tab 顺序: 我的关注、我的收藏、搜索、首页、动态、历史、直播、登录
   final List<String> _tabIcons = [
-    'assets/icons/search.svg',
-    'assets/icons/home.svg',
-    'assets/icons/dynamic.svg',
-    'assets/icons/history.svg',
-    'assets/icons/live.svg', // 新增直播图标
-    'assets/icons/user.svg',
+    'assets/icons/dynamic.svg',   // 0: 我的关注
+    'assets/icons/favorite.svg',  // 1: 我的收藏
+    'assets/icons/search.svg',    // 2: 搜索
+    'assets/icons/home.svg',      // 3: 首页
+    'assets/icons/dynamic.svg',   // 4: 动态
+    'assets/icons/history.svg',   // 5: 历史
+    'assets/icons/live.svg',      // 6: 直播
+    'assets/icons/user.svg',      // 7: 登录
   ];
 
   late List<FocusNode> _sideBarFocusNodes;
@@ -51,6 +55,12 @@ class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<LoginTabState> _loginTabKey = GlobalKey<LoginTabState>();
   // 直播 Tab
   final GlobalKey<LiveTabState> _liveTabKey = GlobalKey<LiveTabState>();
+  // 关注 Tab
+  final GlobalKey<FollowingTabState> _followingTabKey =
+      GlobalKey<FollowingTabState>();
+  // 收藏 Tab
+  final GlobalKey<FavoriteTabState> _favoriteTabKey =
+      GlobalKey<FavoriteTabState>();
 
   @override
   void initState() {
@@ -86,27 +96,29 @@ class _HomeScreenState extends State<HomeScreen> {
     _preloadOtherTabs();
   }
 
-  // 后台预加载动态和历史记录
+  // 后台预加载其他标签
   void _preloadOtherTabs() {
-    // 延迟 500ms 后开始预加载，避免影响首页渲染
-    Future.delayed(const Duration(milliseconds: 500), () {
+    Future.delayed(const Duration(milliseconds: 300), () {
       if (!mounted) return;
-      // 预加载动态页面（如果用户已登录）
+      if (AuthService.isLoggedIn) {
+        _followingTabKey.currentState?.refresh();
+      }
+    });
+
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (!mounted) return;
       if (AuthService.isLoggedIn) {
         _dynamicTabKey.currentState?.refresh();
       }
     });
 
-    // 再延迟 1 秒后预加载历史记录
     Future.delayed(const Duration(milliseconds: 1500), () {
       if (!mounted) return;
-      // 预加载历史记录（如果用户已登录）
       if (AuthService.isLoggedIn) {
         _historyTabKey.currentState?.refresh();
       }
     });
 
-    // 预加载直播
     Future.delayed(const Duration(milliseconds: 2500), () {
       if (!mounted) return;
       _liveTabKey.currentState?.refresh();
@@ -122,15 +134,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _handleSideBarTap(int index) {
-    // 如果已经在当前标签，点击刷新
     if (index == _selectedTabIndex) {
-      if (index == 1) {
-        _homeTabKey.currentState?.refreshCurrentCategory();
-      } else if (index == 2) {
-        _dynamicTabKey.currentState?.refresh();
+      if (index == 0) {
+        _followingTabKey.currentState?.refresh();
+      } else if (index == 1) {
+        _favoriteTabKey.currentState?.refresh();
       } else if (index == 3) {
-        _historyTabKey.currentState?.refresh();
+        _homeTabKey.currentState?.refreshCurrentCategory();
       } else if (index == 4) {
+        _dynamicTabKey.currentState?.refresh();
+      } else if (index == 5) {
+        _historyTabKey.currentState?.refresh();
+      } else if (index == 6) {
         _liveTabKey.currentState?.refresh();
       }
       return;
@@ -139,12 +154,15 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _selectedTabIndex = index);
     _sideBarFocusNodes[index].requestFocus();
 
-    // 动态和历史记录、直播标签: 切换时也刷新
-    if (index == 2) {
-      _dynamicTabKey.currentState?.refresh();
-    } else if (index == 3) {
-      _historyTabKey.currentState?.refresh();
+    if (index == 0) {
+      _followingTabKey.currentState?.refresh();
+    } else if (index == 1) {
+      _favoriteTabKey.currentState?.refresh();
     } else if (index == 4) {
+      _dynamicTabKey.currentState?.refresh();
+    } else if (index == 5) {
+      _historyTabKey.currentState?.refresh();
+    } else if (index == 6) {
       _liveTabKey.currentState?.refresh();
     }
   }
@@ -167,27 +185,34 @@ class _HomeScreenState extends State<HomeScreen> {
           return; // 已被处理，忽略
         }
 
-        // 只有在主页标签 (index=1) 才显示退出提示
-        // 搜索标签需要特殊处理：结果界面返回键盘，键盘返回主页
-        if (_selectedTabIndex == 0) {
-          // 搜索标签
+        // 搜索标签
+        if (_selectedTabIndex == 2) {
           final handled = _searchTabKey.currentState?.handleBack() ?? false;
           if (!handled) {
-            // 键盘界面 → 回主页
-            setState(() => _selectedTabIndex = 1);
-            _sideBarFocusNodes[1].requestFocus();
+            setState(() => _selectedTabIndex = 0);
+            _sideBarFocusNodes[0].requestFocus();
           }
           return;
         }
 
-        if (_selectedTabIndex != 1) {
-          // 其他标签（历史、直播、登录）按返回键都回到主页
-          setState(() => _selectedTabIndex = 1);
-          _sideBarFocusNodes[1].requestFocus();
+        // 收藏标签：视频列表 → 收藏夹列表
+        if (_selectedTabIndex == 1) {
+          final handled = _favoriteTabKey.currentState?.handleBack() ?? false;
+          if (!handled) {
+            setState(() => _selectedTabIndex = 0);
+            _sideBarFocusNodes[0].requestFocus();
+          }
           return;
         }
 
-        // 主页标签：按两次退出
+        if (_selectedTabIndex != 0) {
+          // 其他标签按返回键都回到我的关注
+          setState(() => _selectedTabIndex = 0);
+          _sideBarFocusNodes[0].requestFocus();
+          return;
+        }
+
+        // 我的关注标签：按两次退出
         final now = DateTime.now();
         if (_lastBackPressed == null ||
             now.difference(_lastBackPressed!) > const Duration(seconds: 2)) {
@@ -220,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: List.generate(_tabIcons.length, (index) {
-                    final isUserTab = index == 5; // User tab is now at index 5
+                    final isUserTab = index == 7; // User tab is now at index 7
                     final avatarUrl = isUserTab && AuthService.isLoggedIn
                         ? AuthService.face
                         : null;
@@ -236,7 +261,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                       onTap: () => _handleSideBarTap(index), // 按确定键才刷新
                       // 用户标签按右键导航到设置分类标签
-                      onMoveRight: index == 4
+                      onMoveRight: index == 6
                           ? () {
                               _liveTabKey.currentState?.focusFirstItem();
                             }
@@ -258,49 +283,61 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildRightContent() {
-    // 使用 IndexedStack 保持所有 Tab 状态，避免切换时重新加载
     return IndexedStack(
       index: _selectedTabIndex,
       children: [
-        // 0: 搜索
+        // 0: 我的关注 (新增)
+        FollowingTab(
+          key: _followingTabKey,
+          sidebarFocusNode: _sideBarFocusNodes[0],
+          isVisible: _selectedTabIndex == 0,
+          onFirstLoadComplete: _activateFocusSystem,
+        ),
+        // 1: 我的收藏 (新增)
+        FavoriteTab(
+          key: _favoriteTabKey,
+          sidebarFocusNode: _sideBarFocusNodes[1],
+          isVisible: _selectedTabIndex == 1,
+        ),
+        // 2: 搜索
         SearchTab(
           key: _searchTabKey,
-          sidebarFocusNode: _sideBarFocusNodes[0],
+          sidebarFocusNode: _sideBarFocusNodes[2],
           onBackToHome: () {
-            _backFromSearchHandled = DateTime.now(); // 记录处理时间
-            setState(() => _selectedTabIndex = 1);
-            _sideBarFocusNodes[1].requestFocus();
+            _backFromSearchHandled = DateTime.now();
+            setState(() => _selectedTabIndex = 0);
+            _sideBarFocusNodes[0].requestFocus();
           },
         ),
-        // 1: 首页
+        // 3: 首页
         HomeTab(
           key: _homeTabKey,
-          sidebarFocusNode: _sideBarFocusNodes[1],
+          sidebarFocusNode: _sideBarFocusNodes[3],
           onFirstLoadComplete: _activateFocusSystem,
           preloadedVideos: widget.preloadedVideos,
         ),
-        // 2: 动态
+        // 4: 动态
         DynamicTab(
           key: _dynamicTabKey,
-          sidebarFocusNode: _sideBarFocusNodes[2],
-          isVisible: _selectedTabIndex == 2,
-        ),
-        // 3: 历史
-        HistoryTab(
-          key: _historyTabKey,
-          sidebarFocusNode: _sideBarFocusNodes[3],
-          isVisible: _selectedTabIndex == 3,
-        ),
-        // 4: 直播
-        LiveTab(
-          key: _liveTabKey,
           sidebarFocusNode: _sideBarFocusNodes[4],
           isVisible: _selectedTabIndex == 4,
         ),
-        // 5: 登录/用户
+        // 5: 历史
+        HistoryTab(
+          key: _historyTabKey,
+          sidebarFocusNode: _sideBarFocusNodes[5],
+          isVisible: _selectedTabIndex == 5,
+        ),
+        // 6: 直播
+        LiveTab(
+          key: _liveTabKey,
+          sidebarFocusNode: _sideBarFocusNodes[6],
+          isVisible: _selectedTabIndex == 6,
+        ),
+        // 7: 登录/用户
         LoginTab(
           key: _loginTabKey,
-          sidebarFocusNode: _sideBarFocusNodes[5],
+          sidebarFocusNode: _sideBarFocusNodes[7],
           onLoginSuccess: _refreshCurrentTab,
         ),
       ],
